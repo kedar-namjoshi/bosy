@@ -226,7 +226,7 @@ extension ExplicitStateSolution: DotRepresentable {
 
 extension ExplicitStateSolution: SmvRepresentable {
     private func _toSMV() -> String {
-        var smv: [String] = ["MODULE main"]
+        var smv: [String] = ["MODULE system"]
 
         // variable: states and inputs
         smv.append("\tVAR")
@@ -269,12 +269,15 @@ extension ExplicitStateSolution: SmvRepresentable {
         }
 
         // LTL specification for model checking
-        let ltlspec = specification.ltl.normalized
-        guard let smvLtlSpec = ltlspec.smv else {
-            Logger.default().warning("could not transform LTL specification to SMV format, omit `LTLSPEC` in SMV")
-            return smv.joined(separator: "\n")
+        // print only if the specification has no automaton component
+        if specification.automaton == nil {
+            let ltlspec = specification.ltl.normalized
+            guard let smvLtlSpec = ltlspec.smv else {
+                Logger.default().warning("could not transform LTL specification to SMV format, omit `LTLSPEC` in SMV")
+                return smv.joined(separator: "\n")
+            }
+            smv.append("\tLTLSPEC \(smvLtlSpec)")
         }
-        smv.append("\tLTLSPEC \(smvLtlSpec)")
 
         return smv.joined(separator: "\n")
     }

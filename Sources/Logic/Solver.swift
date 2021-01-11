@@ -210,7 +210,8 @@ struct PicoSAT: SatSolver {
             let (stdout, result) = try withTemporaryFile(dir: nil, prefix: "", suffix: ".dimacs", deleteOnClose: true) {
                 (tempFile: TemporaryFile) throws -> (String, ProcessResult) in
                 tempFile.fileHandle.write(Data(encodedFormula.utf8))
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/picosat-solver", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/picosat-solver", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
                 return (stdout, result)
             }
@@ -243,7 +244,8 @@ struct CryptoMiniSat: SatSolver {
             let (stdout, result) = try withTemporaryFile(dir: nil, prefix: "", suffix: ".dimacs", deleteOnClose: true) {
                 (tempFile: TemporaryFile) throws -> (String, ProcessResult) in
                 tempFile.fileHandle.write(Data(encodedFormula.utf8))
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/cryptominisat5", "--verb=0", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/cryptominisat5", "--verb=0", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
                 return (stdout, result)
             }
@@ -283,7 +285,8 @@ struct RAReQS: QbfSolver {
             let (stdout, result) = try withTemporaryFile(dir: nil, prefix: "", suffix: ".qdimacs", deleteOnClose: true) {
                 (tempFile: TemporaryFile) throws -> (String, ProcessResult) in
                 tempFile.fileHandle.write(Data(encodedFormula.utf8))
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/rareqs", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/rareqs", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
                 return (stdout, result)
             }
@@ -323,7 +326,8 @@ struct DepQBF: QbfSolver {
             let (stdout, result) = try withTemporaryFile(dir: nil, prefix: "", suffix: ".qdimacs", deleteOnClose: true) {
                 (tempFile: TemporaryFile) throws -> (String, ProcessResult) in
                 tempFile.fileHandle.write(Data(encodedFormula.utf8))
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/depqbf", "--qdo", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."                
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/depqbf", "--qdo", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
                 return (stdout, result)
             }
@@ -356,9 +360,10 @@ struct Bloqqer: QbfPreprocessor {
         do {
             let stdout = try withTemporaryFile(dir: nil, prefix: "", suffix: ".qdimacs", deleteOnClose: true) {
                 (tempFile: TemporaryFile) throws -> String in
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
                 let arguments = preserveAssignments ?
-                    ["./Tools/bloqqer", "--partial-assignment=1", "--keep=1", tempFile.path.pathString] :
-                    ["./Tools/bloqqer-031", "--keep=1", tempFile.path.pathString]
+                    ["\(bosy_path)/Tools/bloqqer", "--partial-assignment=1", "--keep=1", tempFile.path.pathString] :
+                    ["\(bosy_path)/Tools/bloqqer-031", "--keep=1", tempFile.path.pathString]
                 tempFile.fileHandle.write(Data(qbf.utf8))
                 let result = try TSCBasic.Process.popen(arguments: arguments)
                 let stdout = try result.utf8Output()
@@ -379,9 +384,9 @@ struct HQSPre: QbfPreprocessor {
                 (tempFile: TemporaryFile) throws -> String? in
                 let fileout = try withTemporaryFile(dir: nil, prefix: "", suffix: ".qdimacs", deleteOnClose: true) {
                     (outFile: TemporaryFile) throws -> String? in
-
+                    let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
                     tempFile.fileHandle.write(Data(qbf.utf8))
-                    _ = try TSCBasic.Process.popen(arguments: ["./Tools/hqspre-linux", "-o", outFile.path.pathString, tempFile.path.pathString])
+                    _ = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/hqspre-linux", "-o", outFile.path.pathString, tempFile.path.pathString])
                     let fileout = try? String(contentsOfFile: outFile.path.pathString, encoding: String.Encoding.utf8)
                     return fileout
                 }
@@ -413,7 +418,8 @@ struct CAQE: QbfSolver, CertifyingQbfSolver {
             let (stdout, result) = try withTemporaryFile(dir: nil, prefix: "", suffix: ".qdimacs", deleteOnClose: true) {
                 (tempFile: TemporaryFile) throws -> (String, ProcessResult) in
                 tempFile.fileHandle.write(Data(encodedFormula.utf8))
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/caqe", "--qdo", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/caqe", "--qdo", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
                 return (stdout, result)
             }
@@ -442,7 +448,8 @@ struct CAQE: QbfSolver, CertifyingQbfSolver {
             (tempFile: TemporaryFile) throws -> QbfSolverResult? in
             tempFile.fileHandle.write(Data(encodedFormula.utf8))
             let task = Process()
-            task.launchPath = "./Tools/caqem"
+            let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."            
+            task.launchPath = "\(bosy_path)/Tools/caqem"
             task.arguments = ["-c", tempFile.path.pathString]
 
             let stdoutPipe = Pipe()
@@ -494,7 +501,8 @@ struct QuAbS: CertifyingQbfSolver {
             tempFile.fileHandle.write(Data(encodedFormula.utf8))
 
             let task = Process()
-            task.launchPath = "./Tools/quabs"
+            let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."            
+            task.launchPath = "\(bosy_path)/Tools/quabs"
             task.arguments = ["-c", tempFile.path.pathString]
 
             let stdoutPipe = Pipe()
@@ -546,7 +554,8 @@ struct CADET: CertifyingQbfSolver {
             (tempFile: TemporaryFile) throws -> QbfSolverResult? in
             tempFile.fileHandle.write(Data(encodedFormula.utf8))
             let task = Process()
-            task.launchPath = "./Tools/cadet"
+            let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."            
+            task.launchPath = "\(bosy_path)/Tools/cadet"
             task.arguments = ["-c", "stdout", tempFile.path.pathString]
 
             let stdoutPipe = Pipe()
@@ -612,7 +621,8 @@ extension UnsafeMutablePointer where Pointee == aiger {
                 abcCommand += " write \(outputTempFile.path.pathString);"
 
                 do {
-                    try TSCBasic.Process.checkNonZeroExit(arguments: ["./Tools/abc", "-q", abcCommand])
+                    let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."                    
+                    try TSCBasic.Process.checkNonZeroExit(arguments: ["\(bosy_path)/Tools/abc", "-q", abcCommand])
                 } catch {
                     Logger.default().error("minimization of aiger using abc failed")
                     return nil
@@ -639,7 +649,8 @@ struct iDQ: DqbfSolver {
 
             // start task and extract stdout
             do {
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/idq", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."                
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/idq", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
 
                 if stdout.contains("UNSAT") {
@@ -676,7 +687,8 @@ struct HQS: DqbfSolver {
 
             // start task and extract stdout
             do {
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/hqs-linux", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."                
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/hqs-linux", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
 
                 if stdout.contains("UNSAT") {
@@ -713,7 +725,8 @@ struct DCAQE: DqbfSolver {
 
             // start task and extract stdout
             do {
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/dcaqe", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."                
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/dcaqe", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
 
                 if stdout.contains("c Unsatisfiable") {
@@ -744,7 +757,8 @@ struct Eprover: DqbfSolver {
 
             // start task and extract stdout
             do {
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/eprover", "--auto", "--tptp3-format", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."                
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/eprover", "--auto", "--tptp3-format", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
 
                 if stdout.contains("SZS status Satisfiable") {
@@ -776,7 +790,8 @@ struct Vampire: DqbfSolver {
 
             // start task and extract stdout
             do {
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/vampire", "--mode", "casc", "-t", "1200", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."                
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/vampire", "--mode", "casc", "-t", "1200", tempFile.path.pathString])
                 let stdout = try result.utf8Output()
 
                 if stdout.contains("SZS status Satisfiable") || stdout.contains("Termination reason: Satisfiable") {
@@ -886,12 +901,14 @@ class GenericSmtSolver: SmtSolver {
 
 final class Z3: GenericSmtSolver {
     init() {
-        super.init(lauchPath: "./Tools/z3", arguments: ["-in"])
+        let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."        
+        super.init(lauchPath: "\(bosy_path)/Tools/z3", arguments: ["-in"])
     }
 }
 
 final class CVC4: GenericSmtSolver {
     init() {
-        super.init(lauchPath: "./Tools/cvc4", arguments: ["--lang", "smt", "--finite-model-find", "--produce-models"])
+        let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."        
+        super.init(lauchPath: "\(bosy_path)/Tools/cvc4", arguments: ["--lang", "smt", "--finite-model-find", "--produce-models"])
     }
 }

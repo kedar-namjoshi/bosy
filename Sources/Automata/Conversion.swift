@@ -10,12 +10,27 @@ public enum LTL2AutomatonConverter: String {
     case ltl3ba
     case spot
 
-    func convert(ltl: LTL) throws -> CoBüchiAutomaton {
-        switch self {
-        case .ltl3ba:
-            return try convertWithLtl3ba(ltl: ltl)
-        case .spot:
-            return try convertWithSpot(ltl: ltl)
+    func convert(ltl: LTL, automaton: String?) throws -> CoBüchiAutomaton {
+        if automaton != nil { // read in automaton
+            let fileName = automaton!
+            let fileURL = URL(fileURLWithPath:fileName)
+            let data = try Data(contentsOf:fileURL)
+            let dataString = String(data:data,encoding:.utf8)
+            
+            if fileName.hasSuffix(".hoa") {
+                return try parse(hoaf:dataString!)
+            } else if fileName.hasSuffix(".spin") {
+                return try parseSpinNeverClaim(neverClaim:dataString!)
+            } else {
+                throw "automaton file name has unsupported suffix"
+            }
+        } else { // convert from LTL 
+            switch self {
+            case .ltl3ba:
+                return try convertWithLtl3ba(ltl: ltl)
+            case .spot:
+                return try convertWithSpot(ltl: ltl)
+            }
         }
     }
 
@@ -26,7 +41,10 @@ func convertWithLtl3ba(ltl: LTL) throws -> CoBüchiAutomaton {
     guard let ltl3baFormatted = ltl.ltl3ba else {
         throw "cannot transform LTL to ltl3ba format"
     }
-    let neverClaim = try TSCBasic.Process.checkNonZeroExit(arguments: ["./Tools/ltl3ba", "-f", "(\(ltl3baFormatted))"])
+
+    let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+
+    let neverClaim = try TSCBasic.Process.checkNonZeroExit(arguments: ["\(bosy_path)/Tools/ltl3ba", "-f", "(\(ltl3baFormatted))"])
     return try parseSpinNeverClaim(neverClaim: neverClaim)
 }
 
@@ -34,7 +52,10 @@ func convertWithSpot(ltl: LTL, hoaf: Bool = false) throws -> CoBüchiAutomaton {
     guard let ltl3baFormatted = ltl.spot else {
         throw "cannot transform LTL to ltl3ba format"
     }
-    var arguments = ["./Tools/ltl2tgba", "-f", "(\(ltl3baFormatted))"]
+
+    let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+
+    var arguments = ["\(bosy_path)/Tools/ltl2tgba", "-f", "(\(ltl3baFormatted))"]
     if hoaf {
         arguments += ["-H", "-B"]
     } else {
@@ -206,7 +227,7 @@ private func parse(hoaf: String) throws -> CoBüchiAutomaton {
     var isBody = false
     for var line in hoaf.components(separatedBy: "\n") {
         line = line.trimmingCharacters(in: NSCharacterSet.whitespacesAndNewlines)
-        // print(line)
+        // print(line) 
         if line.hasPrefix("acc-name:") {
             if line != "acc-name: Buchi" {
                 throw "wrong acceptance condition found in HOAF"

@@ -78,6 +78,20 @@ if let semantics = options.semantics {
 
 private func buildAutomaton(player: Player) -> CoBüchiAutomaton? {
     Logger.default().debug("start building automaton for player \(player)")
+
+    if specification.automaton != nil {
+        Logger.default().debug("reading in specification automaton from \(specification.automaton!)")    
+
+        guard let automaton = try? CoBüchiAutomaton.from(ltl: LTL.ff, automaton: specification.automaton, using: options.converter)
+        else {
+            Logger.default().error("could not construct automaton")
+            return nil
+        }
+
+        Logger.default().info("automaton contains \(automaton.states.count) states")
+        return automaton 
+    }
+    else // look at LTL specification
     if options.monolithic || player == .environment || specification.assumptions.count > 0 {
         let assumption: LTL = specification.assumptions.reduce(LTL.tt, &&)
         let guarantee: LTL = specification.guarantees.reduce(LTL.tt, &&)
@@ -91,7 +105,7 @@ private func buildAutomaton(player: Player) -> CoBüchiAutomaton? {
         }
 
         let automatonTimer = options.statistics?.startTimer(phase: .ltl2automaton)
-        guard let automaton = try? CoBüchiAutomaton.from(ltl: ltlSpec, using: options.converter) else {
+        guard let automaton = try? CoBüchiAutomaton.from(ltl: ltlSpec, automaton: nil, using: options.converter) else {
             Logger.default().error("could not construct automaton")
             return nil
         }
@@ -105,7 +119,7 @@ private func buildAutomaton(player: Player) -> CoBüchiAutomaton? {
         var automata: [CoBüchiAutomaton] = []
         for guarantee in specification.guarantees {
             let automatonTimer = options.statistics?.startTimer(phase: .ltl2automaton)
-            guard let automaton = try? CoBüchiAutomaton.from(ltl: guarantee, using: options.converter) else {
+            guard let automaton = try? CoBüchiAutomaton.from(ltl: guarantee, automaton: nil, using: options.converter) else {
                 Logger.default().error("could not construct automaton")
                 return nil
             }
@@ -217,8 +231,9 @@ var finished = false
 let searchSystem = search(strategy: options.searchStrategy, player: .system, synthesize: options.synthesize)
 let searchEnvironment = search(strategy: options.searchStrategy, player: .environment, synthesize: options.synthesize)
 
-let doSearchSystem = options.player.contains(.system)
-let doSearchEnvironment = options.player.contains(.environment)
+let doSearchSystem = (specification.automaton != nil) || options.player.contains(.system)
+let doSearchEnvironment = (specification.automaton == nil) && options.player.contains(.environment)
+
 
 #if os(Linux)
     let thread1 = Thread {

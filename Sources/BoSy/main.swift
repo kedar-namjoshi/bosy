@@ -56,7 +56,7 @@ class TerminationCondition {
 
 func search(specification: SynthesisSpecification, player: Player, options _: BoSyOptions, synthesize: Bool) -> SafetyAutomaton<CoBüchiAutomaton.CounterState>? {
     do {
-        let automaton = try CoBüchiAutomaton.from(ltl: !specification.ltl)
+        let automaton = try CoBüchiAutomaton.from(ltl: !specification.ltl, automaton: specification.automaton)
         Logger.default().info("automaton contains \(automaton.states.count) states")
 
         // search for minimal number of rejecting state visits
@@ -264,14 +264,17 @@ do {
         }
     }
 
-    // search for environment strategy
-    DispatchQueue(label: "environment").async {
-        if let safety = search(specification: specification.dualized, player: .environment, options: options, synthesize: synthesize && !syntcomp) {
-            winner = .environment
-            safetyAutomaton = safety
-            termination.realizabilityDone(success: true)
-        } else {
-            termination.realizabilityDone(success: false)
+    // search for environment strategy only if the specification is NOT given as an automaton
+    if specification.automaton != nil {
+        // search for environment strategy
+        DispatchQueue(label: "environment").async {
+            if let safety = search(specification: specification.dualized, player: .environment, options: options, synthesize: synthesize && !syntcomp) {
+                winner = .environment
+                safetyAutomaton = safety
+                termination.realizabilityDone(success: true)
+            } else {
+                termination.realizabilityDone(success: false)
+            }
         }
     }
 

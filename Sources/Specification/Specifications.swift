@@ -31,14 +31,16 @@ public struct SynthesisSpecification: Codable {
     public let assumptions: [LTL]
     public let guarantees: [LTL]
     public let hyper: [LTL]?
-
-    public init(semantics: TransitionSystemType, inputs: [String], outputs: [String], assumptions: [LTL], guarantees: [LTL], hyper: [LTL] = []) {
+    public let automaton: String?
+    
+    public init(semantics: TransitionSystemType, inputs: [String], outputs: [String], assumptions: [LTL], guarantees: [LTL], hyper: [LTL] = [], automaton: String? = nil) {
         self.semantics = semantics
         self.inputs = inputs
         self.outputs = outputs
         self.assumptions = assumptions
         self.guarantees = guarantees
         self.hyper = hyper
+        self.automaton = automaton 
     }
 
     public var dualized: SynthesisSpecification {
@@ -46,7 +48,7 @@ public struct SynthesisSpecification: Codable {
         guard !isHyper else {
             fatalError("Specifications containiung hyperproperties cannot be dualized")
         }
-        return SynthesisSpecification(semantics: semantics.swapped, inputs: outputs, outputs: inputs, assumptions: [], guarantees: [dualizedLTL], hyper: [])
+        return SynthesisSpecification(semantics: semantics.swapped, inputs: outputs, outputs: inputs, assumptions: [], guarantees: [dualizedLTL], hyper: [], automaton:nil)
     }
 
     public var ltl: LTL {
@@ -75,7 +77,8 @@ public struct SynthesisSpecification: Codable {
             tempFile.fileHandle.write(Data(tlsf.utf8))
 
             do {
-                let result = try TSCBasic.Process.popen(arguments: ["./Tools/syfco", "--format", "bosy", tempFile.path.pathString])
+                let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+                let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/syfco", "--format", "bosy", tempFile.path.pathString])
                 return .fromJson(string: try result.utf8Output())
             } catch {
                 Logger.default().error("could not transform TLSF to BoSy format using syfco")
@@ -113,8 +116,8 @@ public struct SynthesisSpecification: Codable {
         try withTemporaryFile(dir: nil, prefix: "", suffix: ".tlsf", deleteOnClose: true) {
             (tempFile: TemporaryFile) throws -> SynthesisSpecification in
             tempFile.fileHandle.write(tlsf)
-
-            let result = try TSCBasic.Process.popen(arguments: ["./Tools/syfco", "--format", "bosy", tempFile.path.pathString])
+            let bosy_path = TSCBasic.ProcessEnv.vars["BOSY_PATH"] ?? "."
+            let result = try TSCBasic.Process.popen(arguments: ["\(bosy_path)/Tools/syfco", "--format", "bosy", tempFile.path.pathString])
             return try .from(data: result.utf8Output().data(using: .utf8)!)
         }
     }
